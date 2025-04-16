@@ -1,0 +1,52 @@
+from langchain_ollama import ChatOllama
+import getpass
+import os
+from dotenv import load_dotenv
+from langgraph.prebuilt import create_react_agent
+# from langchain_community.tools.tavily_search import TavilySearchResults
+from langchain_community.tools import DuckDuckGoSearchResults
+
+
+search = DuckDuckGoSearchResults(output_format="json", max_results=3)
+load_dotenv()
+
+
+def _set_env(var: str):
+    if not os.environ.get(var):
+        os.environ[var] = getpass.getpass(f"{var}: ")
+
+
+_set_env("OPENAI_API_KEY")
+_set_env("OPENAI_BASE_URL")
+
+
+# llm = ChatOpenAI(model="gpt-4-turbo-preview")
+llm = ChatOllama(
+    model="llama3.2:1b",
+    temperature=0
+)
+
+tools = [search]
+
+prompt = "You are a helpful websearch assistant."
+graph = create_react_agent(llm, tools, prompt=prompt)
+
+# while True:
+#     user_query = input("Enter your query:")
+#     # res = llm.invoke(user_query)
+#     # print(res.content)
+
+#     res = agent_executor.invoke({"messages": [("user", user_query)]})
+#     print(res)
+
+
+def print_stream(stream):
+    for s in stream:
+        message = s["messages"][-1]
+        if isinstance(message, tuple):
+            print(message)
+        else:
+            message.pretty_print()
+
+inputs = {"messages": [("user", "What is the date today?")]}
+print_stream(graph.stream(inputs, stream_mode="values"))
